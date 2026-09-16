@@ -1,20 +1,33 @@
-import { Navigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useLocation } from "react-router-dom";
 
-function RoleBasedRoute({ allowedRoles, children }) {
-    const user = useSelector(
-        (state) => state.user.user
-    );
+function RoleBasedRoute({ allowedRoles }) {
+    const { user } = useAuth();
 
-    if (user.isAuthenticated === false) {
-        return <Navigate to="/signin" replace />
+    const role = localStorage.getItem("role");
+
+    // if (!user)
+    //     return <Navigate to="/login" replace />;
+
+    const location = useLocation();
+
+    console.log(role);
+
+    if (!allowedRoles.includes(role)) {
+        switch (role) {
+            case "Learner":
+                return <Navigate to="/courses" replace />;
+
+            case "Instructor":
+                return <Navigate to="/instructor/courses" replace />;
+                
+            default:
+                return <Navigate to="/login" replace />;
+        }
     }
 
-    if (!allowedRoles.includes(user.role)) {
-        return <Navigate to="/signin" replace />
-    }
-    
-    return children;
+    return <Outlet />;
 }
 
 export default RoleBasedRoute;

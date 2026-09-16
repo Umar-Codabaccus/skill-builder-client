@@ -1,117 +1,76 @@
 import { Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { setExploreCourse, setOngoingCourse, setCompletedCourse, addCourseModulesToExploreCourses } from "../redux/slices/courseSlice";
-import useBreakpoint from "../hooks/useBreakpoint";
-import { useAutoCrop } from "../hooks/useAutoCrop";
-import { useEffect } from "react";
-import { useGetModules } from "../services/module/useGetModules";
 
-function CourseCard({imageUrl, title, description, id, context}) {
-    const { croppedImage, cropToFit } = useAutoCrop(16, 9);
-    const { data: modules } = useGetModules(id);
+function CourseCard({ course, onArchive, onPublish }) {
+    const status = course.courseStatus ? course.courseStatus.toLowerCase() : "";
+    const isArchived = status === "archived";
+    const isPublished = status === "published";
 
-    console.log(`${id}: ${title}`);
-    console.log(modules);
+    let badgeClass = "bg-warning text-dark";
 
-    useEffect(() => {
-        if (imageUrl) {
-            cropToFit(imageUrl)
-        }
-    }, [imageUrl]);
-
-    const dispatch = useDispatch();
-    const breakpoint = useBreakpoint();
-    const bs = ["xs", "sm", "md", "lg", "xl"];
-
-    const handleClick = () => {
-        var m = []
-
-        modules.forEach(module => {
-            m.push({
-                moduleId: module.id,
-                title: module.moduleDto.title,
-                description: module.moduleDto.description,
-                videoUrl: module.moduleDto.videoUrl,
-                order: module.order
-            })
-        });
-
-        const course = {
-            courseId: id,
-            title: title,
-            description: description,
-            imageUrl: imageUrl, 
-            modules: m
-        }
-
-        if (context.includes("explore")) {
-            dispatch(setExploreCourse(course));
-            dispatch(addCourseModulesToExploreCourses({
-                courseId: course.courseId,
-                modules: course.modules
-            }));
-        }
-
-        if (context.includes("enrolled") && context.includes("ongoing"))
-            dispatch(setOngoingCourse(course));
-
-        if (context.includes("enrolled") && context.includes("completed"))
-            dispatch(setCompletedCourse(course));
+    if (isArchived) {
+        badgeClass = "bg-secondary";
+    }
+    else if (isPublished) {
+        badgeClass = "bg-success";
     }
 
-    const titleLen = () => {
-        if (bs.includes(breakpoint)) {
-            if (title.length > 20) {
-                return title.slice(0, 20).concat("...");
-            }
-        }
+    const handleArchiveClick = () => {
+        onArchive(course.courseId);
+    };
 
-        return title;
+    const handlePublishClick = () => {
+        onPublish(course.courseId);
+    };
 
-    }
-
-    const descLen = () => {
-        if (bs.includes(breakpoint)) {
-            if (description.length > 40) {
-                return description.slice(0, 40).concat("...");
-            }
-        }
-
-        return description;
-    }
-
-    const handleRoute = () => {
-        if (context.includes("explore")){
-            return "explore-courses";
-        }
-
-        return "my-courses";
-    }
     return (
-        <>
-            <div className="card">
-                <img 
-                    src={croppedImage || imageUrl} 
-                    alt={title}
-                    className="card-img-top" />
-                <div className="card-body">
-                    <div className="card-title">{titleLen()}</div>
-                    <p className="card-text">{descLen()}</p>
-                    {/* <button onClick={handleClick} className="btn">
-                        <Link to={`/learner/${handleRoute()}/${id}`} className="btn btn-primary">
-                            Go to course
-                        </Link>
-                    </button> */}
+        <div className="card shadow-sm mb-3">
+            <div className="card-body">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                    <h5 className="card-title mb-0" data-testid="course-title">{course.courseTitle}</h5>
+                    <span className={`badge ${badgeClass}`}>{course.courseStatus}</span>
+                </div>
+
+                <p className="card-text text-muted">{course.courseDescription}</p>
+
+                <div className="d-flex gap-2">
                     <Link
-                        to={`/learner/${handleRoute()}/${id}`}
-                            className="btn btn-primary"
-                            onClick={handleClick}
-                        >
-                        Go to course
+                        to={`/instructor/course/${course.courseId}/lessons`}
+                        state={{ course }}
+                        className="btn btn-outline-secondary btn-sm"
+                    >
+                        Manage Lessons
                     </Link>
+
+                    <Link
+                        to={`/instructor/course/${course.courseId}/edit`}
+                        state={{ course }}
+                        className="btn btn-outline-primary btn-sm"
+                    >
+                        Edit
+                    </Link>
+
+                    {!isPublished && !isArchived && (
+                        <button
+                            type="button"
+                            className="btn btn-outline-success btn-sm"
+                            onClick={handlePublishClick}
+                        >
+                            Publish
+                        </button>
+                    )}
+
+                    {!isArchived && (
+                        <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={handleArchiveClick}
+                        >
+                            Archive
+                        </button>
+                    )}
                 </div>
             </div>
-        </>
+        </div>
     );
 }
 
